@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collab-Code</title>
+</head>
+<body>
+    <h1> Welcome to Collab-Code!</h1>
+    <p id="status">Not Connected...</p>
+
+    <div>
+        <button id="createBtn">Create Room</button>
+    </div>
+
+    <div>
+        <input type="text" id="roomInput" placeHolder="Enter Room ID"/>
+        <button id="joinBtn">Join Room </button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket=io();
+        socket.on('connect',()=>{
+            document.getElementById('status').innerText='Connected!  : '+socket.id;
+        });
+        document.getElementById('createBtn').addEventListener('click',()=>{
+            socket.emit('create-room');
+        });
+        socket.on('room-created',(roomId)=>{
+            window.location.href=`/editor.html?roomId=${roomId}`;
+        });
+        document.getElementById('joinBtn').addEventListener('click',()=>{
+            const roomId=document.getElementById('roomInput').value.trim();
+            if(!roomId){
+                 alert("Please enter a Room Id");
+                 return;
+            } 
+            socket.emit('check-room',roomId,(exists)=>{
+                if(exists){
+                    window.location.href=`/editor.html?roomId=${roomId}`;
+                }else{
+                    alert('Room does not exist');
+                }
+            });
+        });
+        socket.on('error',(message)=>{
+            alert(message);
+        });
+    </script>
+</body>
+</html>

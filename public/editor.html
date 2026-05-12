@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Editor — CollabCode</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+</head>
+<body>
+
+  <h1>Editor</h1>
+  <p id="status">Loading...</p>
+  <p id="roomInfo"></p>
+
+  <div id="editor" style="width:100%;height:500px;border:1px solid #ccc;"></div>
+
+  
+  <script>
+    const socket = io();
+    require.config({paths : {vs : 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'}});
+    let editor;
+    require(['vs/editor/editor.main'],function(){
+      editor=monaco.editor.create(document.getElementById('editor'),{
+        value:'// Start coding here...',
+        language:'javascript',
+        theme:'vs-dark',
+        automaticLayout:true,
+        fontSize:15,
+        minimap:{enabled:false}
+      });
+      // listen for changes in our editor -> send to server
+      // since monaco loads asynchronously we are writing these
+      //events here
+      editor.onDidChangeModelContent(()=>{
+        const code=editor.getValue();
+        socket.emit('code-change',{roomId,code});
+      });
+      socket.on('code-change',(code)=>{
+        if(code!==editor.getValue()){
+          editor.setValue(code);
+        }
+      });
+    });
+
+
+
+    const params=new URLSearchParams(window.location.search);
+    const roomId=params.get('roomId');
+
+    if(!roomId){
+      document.getElementById('status').textContent='No room ID in URL';
+    }else{ 
+      document.getElementById('roomInfo').textContent=`Room : ${roomId}`;
+      
+      socket.on('connect',()=>{
+        socket.emit('join-room',roomId);
+      });
+
+      socket.on('room-joined',(id)=>{
+        document.getElementById('status').textContent=`joined room ${id}`;
+      });
+
+      socket.on('error',(msg)=>{
+        document.getElementById('status').textContent=`${msg}`;
+      });
+    }
+  </script>
+
+</body>
+</html>
