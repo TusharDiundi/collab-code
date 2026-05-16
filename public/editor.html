@@ -18,6 +18,12 @@
     const socket = io();
     require.config({paths : {vs : 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'}});
     let editor;
+    let applyingRemote=false; // flag to prevent infinite loop of changes
+   
+   
+    // listen for changes in our editor -> send to server
+    // since monaco loads asynchronously we are writing these
+    //events here
     require(['vs/editor/editor.main'],function(){
       editor=monaco.editor.create(document.getElementById('editor'),{
         value:'// Start coding here...',
@@ -27,12 +33,24 @@
         fontSize:15,
         minimap:{enabled:false}
       });
-      // listen for changes in our editor -> send to server
-      // since monaco loads asynchronously we are writing these
-      //events here
-      editor.onDidChangeModelContent(()=>{
-        const code=editor.getValue();
-        socket.emit('code-change',{roomId,code});
+      // event -> {changes:[{range:{startLineNumber, startColumn, endLineNumber, endColumn}, text, rangeLength}]
+      editor.onDidChangeModelContent((event)=>{
+        if(applyingRemote){
+          return; // skip if this change is from remote update
+        }
+        event.changes.forEach((change)=>{
+          const position=editor.getModel().getOffsetAt({
+            lineNumber:change.range.startLineNumber,
+            column:change.range.startColumn
+          });
+          const operation={
+            position:position,
+            text:change.text,
+            length:change.rangeLength
+          };
+          socket.emit('operation',{roomId,operation});
+        });
+
       });
       socket.on('code-change',(code)=>{
         if(code!==editor.getValue()){
