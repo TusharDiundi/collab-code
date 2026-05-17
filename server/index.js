@@ -9,6 +9,15 @@ const io=new Server(server);
 const rooms ={};
 app.use(express.static(path.join(__dirname,'../public')));
 
+function applyOperation(code,operation){
+    const {position,text,length}=operation;
+
+    const before = code.slice(0,position);
+    const after = code.slice(position+length);
+
+    return before + text + after;
+}
+
 io.on('connection',(socket)=>{
     console.log('A user connected: ',socket.id);
 
@@ -38,12 +47,15 @@ io.on('connection',(socket)=>{
         console.log(`${socket.id} joined : ${roomId}`);
     });
 
-    socket.on('code-change',({roomId,code})=>{
-        if(rooms[roomId]){
-            rooms[roomId].code=code;
-            socket.to(roomId).emit('code-change',code);
-        }
+    socket.on('operation',({roomId,operation})=>{
+        if(!rooms[roomId])return;
+        
+        rooms[roomId].code=applyOperation(rooms[roomId].code,operation);
+        
+        socket.to(roomId).emit('operation',operation);
     });
+
+
     socket.on('disconnect',()=>{
         console.log('A user disconnected: ',socket.id);
         for(const roomId in rooms){

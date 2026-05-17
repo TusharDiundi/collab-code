@@ -52,11 +52,28 @@
         });
 
       });
-      socket.on('code-change',(code)=>{
-        if(code!==editor.getValue()){
-          editor.setValue(code);
-        }
-      });
+      socket.on('operation',(operation)=>{
+          applyingRemote=true; // set flag to prevent loop
+
+          const model=editor.getModel();
+          const startPos=model.getPositionAt(operation.position);
+          const endPos=model.getPositionAt(operation.position + operation.length);
+
+          editor.executeEdits('remote',[{
+            range : new monaco.Range(
+              startPos.lineNumber,startPos.column,
+              endPos.lineNumber,endPos.column
+            ),
+            text : operation.text
+          }]);
+
+          applyingRemote = false;
+     });
+      // socket.on('code-change',(code)=>{
+      //   if(code!==editor.getValue()){
+      //     editor.setValue(code);
+      //   }
+      // });
     });
 
 
