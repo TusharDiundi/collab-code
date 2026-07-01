@@ -7,6 +7,7 @@ const app=express();
 const server=http.createServer(app);
 const io=new Server(server);
 const rooms ={};
+const {transform} = require('./ot');
 app.use(express.static(path.join(__dirname,'../public')));
 
 function applyOperation(code,operation){
@@ -25,7 +26,9 @@ io.on('connection',(socket)=>{
         const roomId=uuidv4();
         rooms[roomId]={
             users:[],// initially it added socket 
-            code:''
+            code:'',
+            history:[],
+            version:0
         };// and we also joined the socket to the room
         socket.emit('room-created',roomId);
         console.log(`Room created: ${roomId}`);
@@ -47,12 +50,30 @@ io.on('connection',(socket)=>{
         console.log(`${socket.id} joined : ${roomId}`);
     });
 
-    socket.on('operation',({roomId,operation})=>{
-        if(!rooms[roomId])return;
-        
-        rooms[roomId].code=applyOperation(rooms[roomId].code,operation);
-        
-        socket.to(roomId).emit('operation',operation);
+    socket.on('operation',({roomId,operation,version})=>{
+       const room = rooms[roomId];
+       if(!room) return ;
+
+       // transform the incoming operation against every operation it hasn't seen
+       let transformedOperation = operation;
+       for(let i=version;i<room.history.length;i++){
+        transformedOperation = transform(transformedOperation,room.history[i]);
+       }
+
+       // apply the transformed operation to the room's code
+       room.code = applyOperation(room.code,transformedOperation);
+       // store it in history and increment the version
+       room.history.push(transformedOperation);
+        room.version++;
+
+       // telling sender its operation's version
+       socket.emit('ack',{version : room.version});
+       
+        // broadcast the transformed operation+new version to everyone else
+        socket.to(roomId).emit('operation',{
+            operation : transformedOperation,
+            version : room.version
+        });
     });
 
 

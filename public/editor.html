@@ -19,7 +19,7 @@
     require.config({paths : {vs : 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'}});
     let editor;
     let applyingRemote=false; // flag to prevent infinite loop of changes
-   
+    let version=0; // document version this client is synced to
    
     // listen for changes in our editor -> send to server
     // since monaco loads asynchronously we are writing these
@@ -43,17 +43,33 @@
             lineNumber:change.range.startLineNumber,
             column:change.range.startColumn
           });
-          const operation={
-            position:position,
-            text:change.text,
-            length:change.rangeLength
-          };
-          socket.emit('operation',{roomId,operation});
+          
+          // delete operation
+          if(change.rangeLength>0){
+            console.log('SENDING DELETE:', {position:position, length:change.rangeLength, version:version});
+            socket.emit('operation',{
+              roomId,
+              operation:{position:position,text:"",length:change.rangeLength},
+              version:version
+            });
+          }
+          // insert
+          if(change.text.length>0){
+            socket.emit('operation',{
+              roomId,
+              operation:{position:position,text:change.text,length:0},
+              version:version
+            });
+          }
         });
 
       });
-      socket.on('operation',(operation)=>{
-          applyingRemote=true; // set flag to prevent loop
+      socket.on('operation',(data)=>{
+        console.log('RECEIVED OP:', data);  
+        applyingRemote=true; // set flag to prevent loop
+
+        const operation=data.operation;
+        version = data.version; // keeping our version in sync with server
 
           const model=editor.getModel();
           const startPos=model.getPositionAt(operation.position);
@@ -75,7 +91,9 @@
       //   }
       // });
     });
-
+    socket.on('ack',(data)=>{
+      version=data.version; // our own op was applied,sync to it's version
+    });
 
 
     const params=new URLSearchParams(window.location.search);
