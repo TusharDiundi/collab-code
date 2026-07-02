@@ -8,6 +8,11 @@ const server=http.createServer(app);
 const io=new Server(server);
 const rooms ={};
 const {transform} = require('./ot');
+const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+function randomName(){
+    const names= ['Fox', 'Owl', 'Bear', 'Wolf', 'Hawk', 'Deer'];
+    return names[Math.floor(Math.random()*names.length)] + Math.floor(Math.random()*100);
+}
 app.use(express.static(path.join(__dirname,'../public')));
 
 function applyOperation(code,operation){
@@ -25,7 +30,7 @@ io.on('connection',(socket)=>{
     socket.on('create-room',()=>{
         const roomId=uuidv4();
         rooms[roomId]={
-            users:[],// initially it added socket 
+            users:{},// initially it added socket 
             code:'',
             history:[],
             version:0
@@ -44,12 +49,30 @@ io.on('connection',(socket)=>{
             socket.emit('error','Room does not exist');
             return;
         }
-        rooms[roomId].users.push(socket.id);
+        const room = rooms[roomId];
+        const colorIndex=Object.keys(room.users).length % COLORS.length;
+        room.users[socket.id]={
+            name:randomName(),
+            color:COLORS[colorIndex]
+        };
         socket.join(roomId);
-        socket.emit('room-joined',roomId);
+        socket.emit('room-joined',{
+            roomId:roomId,
+            self:room.users[socket.id],
+            users:room.users
+        });
         console.log(`${socket.id} joined : ${roomId}`);
     });
-
+    socket.on('cursor-move',({roomId,position})=>{
+        const room=rooms[roomId];
+        if(!room) return;
+        socket.to(roomId).emit('cursor-update',{
+            socketId:socket.id,
+            position:position,
+            name:room.users[socket.id].name,
+            color:room.users[socket.id].color
+        });
+    })
     socket.on('operation',({roomId,operation,version})=>{
        const room = rooms[roomId];
        if(!room) return ;
@@ -81,11 +104,11 @@ io.on('connection',(socket)=>{
         console.log('A user disconnected: ',socket.id);
         for(const roomId in rooms){
             const room=rooms[roomId];
-            const index=room.users.indexOf(socket.id);
-            if(index!==-1){
-                room.users.splice(index,1);
-
-                if(room.users.length===0){
+            
+            if(room.users[socket.id]){
+                delete room.users[socket.id];
+                socket.to(roomId).emit('cursor-remove',socket.id);
+                if(Object.keys(room.users).length===0){
                     delete rooms[roomId];
                     console.log(`Room deleted : ${roomId}`);
                 }

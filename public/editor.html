@@ -4,6 +4,15 @@
   <title>Editor — CollabCode</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <style>
+    .remote-cursor-line{
+      border-left : 2px solid #e74c3c;
+      margin-left:-1px;
+    }
+    .remote-cursor{
+      background:rgba(231, 76, 60, 0.1);
+    }
+  </style>
 </head>
 <body>
 
@@ -20,7 +29,9 @@
     let editor;
     let applyingRemote=false; // flag to prevent infinite loop of changes
     let version=0; // document version this client is synced to
-   
+    let myIdentity = null;
+    const remoteCursors={};
+    const injectedStyles={}
     // listen for changes in our editor -> send to server
     // since monaco loads asynchronously we are writing these
     //events here
@@ -85,15 +96,63 @@
 
           applyingRemote = false;
      });
-      // socket.on('code-change',(code)=>{
-      //   if(code!==editor.getValue()){
-      //     editor.setValue(code);
-      //   }
-      // });
+      socket.on('ack',(data)=>{
+        version=data.version; // our own op was applied,sync to it's version
+        });
+
+      editor.onDidChangeCursorPosition((e)=>{
+        const offset=editor.getModel().getOffsetAt(e.position);
+        socket.emit('cursor-move',{
+          roomId,
+          position:offset
+        });
+      });
+
+      socket.on('cursor-update',(data)=>{
+        const model=editor.getModel();
+        const pos=model.getPositionAt(data.position);
+  // inject a per-user style once
+       if(!injectedStyles[data.socketId]){
+        const styleEl = document.createElement('style');
+        const safeClass = 'cursor-' + data.socketId.replace(/[^a-zA-Z0-9]/g, '');
+        styleEl.textContent = `
+          .${safeClass} {
+            border-left: 2px solid ${data.color};
+            margin-left: -1px;
+          }
+          .${safeClass}::after {
+            content: "${data.name}";
+            position: absolute;
+            top: -1.2em;
+            background: ${data.color};
+            color: white;
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+          }
+        `;
+        document.head.appendChild(styleEl);
+        injectedStyles[data.socketId] = safeClass;
+      }
+
+      const safeClass = injectedStyles[data.socketId];
+      const oldDecorations = remoteCursors[data.socketId] || [];
+      const newDecoration = editor.deltaDecorations(oldDecorations,[{
+        range:new monaco.Range(pos.lineNumber,pos.column,pos.lineNumber,pos.column),
+        options:{
+          beforeContentClassName: safeClass
+        }
+      }]);
+      remoteCursors[data.socketId] = newDecoration; 
+      });
+      socket.on('cursor-remove',(socketId)=>{
+        const old=remoteCursors[socketId] || [];
+        editor.deltaDecorations(old,[]);
+        delete remoteCursors[socketId];
+      });
     });
-    socket.on('ack',(data)=>{
-      version=data.version; // our own op was applied,sync to it's version
-    });
+    
 
 
     const params=new URLSearchParams(window.location.search);
@@ -108,8 +167,10 @@
         socket.emit('join-room',roomId);
       });
 
-      socket.on('room-joined',(id)=>{
-        document.getElementById('status').textContent=`joined room ${id}`;
+
+      socket.on('room-joined',(data)=>{
+        myIdentity = data.self;
+        document.getElementById('status').textContent=`joined room ${data.roomId} as ${data.self.name}`;
       });
 
       socket.on('error',(msg)=>{
