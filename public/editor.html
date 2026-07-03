@@ -16,9 +16,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <body>
-
   <div class="topbar">
     <h1>CollabCode</h1>
     <span id="status" class="status">Loading...</span>
@@ -163,12 +160,26 @@
       }]);
       remoteCursors[data.socketId] = newDecoration; 
       });
+
       socket.on('cursor-remove',(socketId)=>{
         const old=remoteCursors[socketId] || [];
         editor.deltaDecorations(old,[]);
         delete remoteCursors[socketId];
       });
 
+      document.getElementById('runBtn').addEventListener('click', () => {
+      const code = editor.getValue();
+      const outputEl = document.getElementById('output');
+      const runBtn = document.getElementById('runBtn');
+
+      runBtn.disabled = true;
+      outputEl.textContent = 'Running...';
+
+      socket.emit('execute-code', { code }, (result) => {
+        outputEl.textContent = result.output;
+        runBtn.disabled = false;
+      });
+  });
     
 });
     

@@ -3,6 +3,7 @@ const http=require('http');
 const {Server} = require('socket.io');
 const path=require('path');
 const {v4:uuidv4}=require('uuid');
+const {spawn} = require('child_process');
 const app=express();
 const server=http.createServer(app);
 const io=new Server(server);
@@ -115,6 +116,45 @@ io.on('connection',(socket)=>{
             }
         }
     });
+
+    socket.on('execute-code', ({ code }, callback) => {
+        console.log('EXECUTE REQUEST RECEIVED, code length:', code.length);
+        const fs = require('fs');
+        const os = require('os');
+        const tmpFile = path.join(os.tmpdir(), `collabcode-${socket.id}-${Date.now()}.js`);
+
+        fs.writeFileSync(tmpFile, code);
+
+        const child = spawn('node', [tmpFile], { timeout: 3000 });
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.on('data', (data) => { stdout += data.toString(); });
+        child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+        child.on('close', (exitCode) => {
+            console.log('CHILD CLOSED, exitCode:', exitCode);
+            fs.unlink(tmpFile, () => {});
+
+            let output = stdout + stderr;
+
+            const MAX_OUTPUT = 10000;   // ~10KB cap
+            if (output.length > MAX_OUTPUT) {
+                output = output.slice(0, MAX_OUTPUT) + '\n...[output truncated]';
+            }
+
+            if (exitCode === null) {
+                output += '\n[Process killed: 5 second time limit exceeded]';
+            }
+            callback({ output: output || 'No output' });
+        });
+
+        child.on('error', (err) => {
+            fs.unlink(tmpFile, () => {});
+            callback({ output: 'Execution error: ' + err.message });
+        });
+  });
 });
 
 const PORT=3000;
