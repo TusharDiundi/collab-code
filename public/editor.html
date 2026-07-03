@@ -13,15 +13,32 @@
       background:rgba(231, 76, 60, 0.1);
     }
   </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1>Editor</h1>
-  <p id="status">Loading...</p>
-  <p id="roomInfo"></p>
+  <body>
 
-  <div id="editor" style="width:100%;height:500px;border:1px solid #ccc;"></div>
+  <div class="topbar">
+    <h1>CollabCode</h1>
+    <span id="status" class="status">Loading...</span>
+    <span id="roomInfo" class="room-info"></span>
+  </div>
 
+  <div id="editor" class="editor"></div>
+
+  <div class="controls">
+    <select id="language" class="lang-select">
+      <option value="javascript">JavaScript</option>
+      <option value="python">Python</option>
+      <option value="cpp">C++</option>
+      <option value="java">Java</option>
+      <option value="c">C</option>
+    </select>
+    <button id="runBtn" class="run-btn">Run</button>
+  </div>
+
+  <pre id="output" class="output">Output will appear here...</pre>
   
   <script>
     const socket = io();
@@ -39,7 +56,7 @@
       editor=monaco.editor.create(document.getElementById('editor'),{
         value:'// Start coding here...',
         language:'javascript',
-        theme:'vs-dark',
+        theme:'vs',
         automaticLayout:true,
         fontSize:15,
         minimap:{enabled:false}
@@ -123,7 +140,7 @@
           .${safeClass}::after {
             content: "${data.name}";
             position: absolute;
-            top: -1.2em;
+            top: 1.4em;
             background: ${data.color};
             color: white;
             font-size: 10px;
@@ -151,7 +168,9 @@
         editor.deltaDecorations(old,[]);
         delete remoteCursors[socketId];
       });
-    });
+
+    
+});
     
 
 
