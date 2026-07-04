@@ -1,3 +1,104 @@
+/* ===== Home Page ===== */
+.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background: #f6f8fa;
+  padding: 20px;
+}
+
+.wordmark {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-weight: 600;
+  margin: 0;
+  font-size: 0;
+}
+.wordmark::before { content: "collab"; color: #1f2328; font-size: 2.2rem; }
+.wordmark::after  { content: "::code"; color: #0969da; font-size: 2.2rem; }
+
+.tagline {
+  color: #656d76;
+  font-size: 0.95rem;
+  margin: 4px 0 28px;
+}
+
+.home-actions {
+  background: #ffffff;
+  border: 1px solid #d9dee3;
+  border-radius: 12px;
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.primary-btn {
+  background: #1a7f37;
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  padding: 11px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.primary-btn:hover { background: #166f30; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8b949e;
+  font-size: 0.75rem;
+}
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #d9dee3;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.room-input {
+  flex: 1;
+  background: #f6f8fa;
+  border: 1px solid #d9dee3;
+  color: #1f2328;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: 'SF Mono', Monaco, monospace;
+  outline: none;
+}
+.room-input:focus { border-color: #0969da; }
+
+.secondary-btn {
+  background: #ffffff;
+  color: #1f2328;
+  border: 1px solid #d9dee3;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.secondary-btn:hover { border-color: #8b949e; }
+
+.home-status {
+  margin-top: 18px;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
 /* ===== Editor Page ===== */
 :root {
   --bg: #f6f8fa;

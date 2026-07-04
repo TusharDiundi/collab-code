@@ -4,18 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collab-Code</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1> Welcome to Collab-Code!</h1>
-    <p id="status">Not Connected...</p>
+    <div class="home">
+        <h1 class="wordmark"></h1>
+        <p class="tagline">Real-time collaborative code editor</p>
 
-    <div>
-        <button id="createBtn">Create Room</button>
-    </div>
+        <div class="home-actions">
+            <button id="createBtn" class="primary-btn">Create Room</button>
 
-    <div>
-        <input type="text" id="roomInput" placeHolder="Enter Room ID"/>
-        <button id="joinBtn">Join Room </button>
+            <div class="divider"><span>or join an existing room</span></div>
+
+            <div class="join-row">
+            <input type="text" id="roomInput" class="room-input" placeholder="Paste room ID" />
+            <button id="joinBtn" class="secondary-btn">Join</button>
+            </div>
+        </div>
+
+        <p id="status" class="home-status">Connecting...</p>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
