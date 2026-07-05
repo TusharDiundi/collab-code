@@ -60,7 +60,9 @@ io.on('connection',(socket)=>{
         socket.emit('room-joined',{
             roomId:roomId,
             self:room.users[socket.id],
-            users:room.users
+            users:room.users,
+            code: room.code,
+            version: room.version
         });
         console.log(`${socket.id} joined : ${roomId}`);
     });

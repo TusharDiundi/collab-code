@@ -200,8 +200,17 @@
 
       socket.on('room-joined',(data)=>{
         myIdentity = data.self;
+        version = data.version;
+
+        // load the room's current code into our editor
+        if (editor) {
+            applyingRemote = true;              // don't echo this as an operation
+            editor.setValue(data.code);
+            applyingRemote = false;
+        }
+
         document.getElementById('status').textContent=`joined room ${data.roomId} as ${data.self.name}`;
-      });
+    });
 
       socket.on('error',(msg)=>{
         document.getElementById('status').textContent=`${msg}`;
